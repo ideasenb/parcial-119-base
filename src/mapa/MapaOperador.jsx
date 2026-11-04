@@ -1,8 +1,7 @@
 import { useEffect } from 'react'
+import L from 'leaflet'
 import { MapContainer, TileLayer, Marker, Popup, LayersControl, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import './mapa.css'
-import { crearIcono } from './iconos.js'
 import { GRUPOS, colorDeGrupo } from '../data/grupos.js'
 
 const CENTRO_CALI = [3.437, -76.522]
@@ -12,6 +11,60 @@ const CENTRO_CALI = [3.437, -76.522]
 //   reportes: [{ id, grupo, lat, lng, estado, barrio }]
 //   seleccionadoId: id del reporte seleccionado (o null)
 //   onSeleccionar: (id) => void
+
+function clasePin(estado) {
+  if (estado === 'Recibido') return 'pin--pulso'
+  if (estado === 'Cerrado' || estado === 'Descartado') return 'pin--apagado'
+  return ''
+}
+
+function crearIcono(color, seleccionado, clases) {
+  const tam = seleccionado ? 34 : 26
+  return L.divIcon({
+    className: '',
+    html: `<div class="pin ${seleccionado ? 'pin--seleccionado' : ''} ${clases}" style="--color:${color}; width:${tam}px; height:${tam}px"></div>`,
+    iconSize: [tam, tam],
+    iconAnchor: [tam / 2, tam],
+    popupAnchor: [0, -tam],
+  })
+}
+
+// Cuando se selecciona un reporte (desde la lista o el mapa), el mapa vuela hasta él.
+function IrAlSeleccionado({ reporte }) {
+  const map = useMap()
+  const id = reporte?.id
+  const lat = reporte?.lat
+  const lng = reporte?.lng
+
+  useEffect(() => {
+    if (id !== undefined) map.flyTo([lat, lng], 16, { duration: 0.8 })
+  }, [id, lat, lng, map])
+
+  return null
+}
+
+// Leyenda fija en la esquina inferior izquierda: color y conteo por grupo.
+function Leyenda({ reportes }) {
+  return (
+    <div className="leaflet-bottom leaflet-left">
+      <div className="leaflet-control leyenda">
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>REPORTES · {reportes.length}</div>
+        {GRUPOS.map((g) => {
+          const n = reportes.filter((r) => r.grupo === g.codigo).length
+          return (
+            <div key={g.codigo} className="leyenda__fila" style={{ opacity: n ? 1 : 0.45 }}>
+              <span className="leyenda__punto" style={{ background: g.color }} />
+              <span style={{ width: 28, color: '#94a3b8' }}>{g.codigo}</span>
+              <span style={{ flex: 1 }}>{g.nombre}</span>
+              <strong>{n}</strong>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function MapaOperador({ reportes = [], seleccionadoId = null, onSeleccionar }) {
   const seleccionado = reportes.find((r) => r.id === seleccionadoId)
 
@@ -37,14 +90,18 @@ export default function MapaOperador({ reportes = [], seleccionadoId = null, onS
         <Marker
           key={r.id}
           position={[r.lat, r.lng]}
-          icon={crearIcono(colorDeGrupo(r.grupo), { seleccionado: r.id === seleccionadoId })}
+          icon={crearIcono(colorDeGrupo(r.grupo), r.id === seleccionadoId, clasePin(r.estado))}
           eventHandlers={{ click: () => onSeleccionar?.(r.id) }}
         >
           {/* TODO (estudiantes): completar el Popup con nombre, qué ve y estado. */}
           <Popup>
-            <strong>{r.grupo}</strong> · {r.barrio}
+            <strong>{r.radicado}</strong> · {r.grupo}
             <br />
-            {r.estado}
+            {r.nombres} {r.apellidos} · {r.barrio}
+            <br />
+            ¿Qué ve? {r.queVe}
+            <br />
+            Estado: <strong>{r.estado}</strong>
           </Popup>
         </Marker>
       ))}
@@ -52,36 +109,5 @@ export default function MapaOperador({ reportes = [], seleccionadoId = null, onS
       <IrAlSeleccionado reporte={seleccionado} />
       <Leyenda reportes={reportes} />
     </MapContainer>
-  )
-}
-
-// Cuando se selecciona un reporte (desde la lista o el mapa), el mapa vuela hasta él.
-function IrAlSeleccionado({ reporte }) {
-  const map = useMap()
-  useEffect(() => {
-    if (reporte) map.flyTo([reporte.lat, reporte.lng], 16, { duration: 0.8 })
-  }, [reporte, map])
-  return null
-}
-
-// Leyenda fija en la esquina inferior izquierda: color y conteo por grupo.
-function Leyenda({ reportes }) {
-  return (
-    <div className="leaflet-bottom leaflet-left">
-      <div className="leaflet-control leyenda">
-        <div style={{ fontWeight: 700, marginBottom: 6 }}>REPORTES · {reportes.length}</div>
-        {GRUPOS.map((g) => {
-          const n = reportes.filter((r) => r.grupo === g.codigo).length
-          return (
-            <div key={g.codigo} className="leyenda__fila" style={{ opacity: n ? 1 : 0.45 }}>
-              <span className="leyenda__punto" style={{ background: g.color }} />
-              <span style={{ width: 28, color: '#94a3b8' }}>{g.codigo}</span>
-              <span style={{ flex: 1 }}>{g.nombre}</span>
-              <strong>{n}</strong>
-            </div>
-          )
-        })}
-      </div>
-    </div>
   )
 }
