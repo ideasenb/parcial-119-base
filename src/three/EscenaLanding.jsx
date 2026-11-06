@@ -1,67 +1,87 @@
-import { Suspense, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, useGLTF } from '@react-three/drei'
+import { OrbitControls, useAnimations, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { GRUPOS } from '../data/grupos.js'
+import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 
-const RUTA_MODELO = '/models/cuartel.glb'
-const TAMANO_MODELO = 5
+const RUTA_CUARTEL = '/models/cuartel.glb'
+const RUTA_FUEGO = '/models/fuego.glb'
+const TAMANO_CUARTEL = 30
+const TAMANO_FUEGO = 3
+const CANTIDAD_FUEGOS = 6
+
+function medir(modelo, tamanoDeseado, enElPiso) {
+  const caja = new THREE.Box3().setFromObject(modelo)
+  const tamano = caja.getSize(new THREE.Vector3())
+  const centro = caja.getCenter(new THREE.Vector3())
+  const escala = tamanoDeseado / Math.max(tamano.x, tamano.y, tamano.z)
+  const y = enElPiso ? -caja.min.y : -centro.y
+  return { escala, ajuste: [-centro.x * escala, y * escala, -centro.z * escala] }
+}
 
 function Cuartel() {
-  const ref = useRef()
-  const { scene } = useGLTF(RUTA_MODELO)
+  const { scene } = useGLTF(RUTA_CUARTEL)
   const copia = useMemo(() => scene.clone(), [scene])
-
-  const { escala, posicion } = useMemo(() => {
-    const caja = new THREE.Box3().setFromObject(copia)
-    const tamano = caja.getSize(new THREE.Vector3())
-    const centro = caja.getCenter(new THREE.Vector3())
-    const escala = TAMANO_MODELO / Math.max(tamano.x, tamano.y, tamano.z)
-    return { escala, posicion: [-centro.x * escala, -caja.min.y * escala, -centro.z * escala] }
-  }, [copia])
-
-  useFrame((_, delta) => {
-    ref.current.rotation.y += delta * 0.15
-  })
+  const { escala, ajuste } = useMemo(() => medir(copia, TAMANO_CUARTEL, true), [copia])
 
   return (
-    <group ref={ref} onClick={(e) => e.stopPropagation()}>
-      <primitive object={copia} scale={escala} position={posicion} />
+    <group onClick={(e) => e.stopPropagation()}>
+      <primitive object={copia} scale={escala} position={ajuste} />
     </group>
   )
 }
 
-function Orbe({ grupo, indice, noche }) {
-  const [encima, setEncima] = useState(false)
-  const angulo = (indice / GRUPOS.length) * Math.PI * 2
-
-  return (
-    <mesh
-      position={[Math.cos(angulo) * 4.2, 3.6, Math.sin(angulo) * 4.2]}
-      scale={encima ? 1.7 : 1}
-      onPointerOver={() => setEncima(true)}
-      onPointerOut={() => setEncima(false)}
-    >
-      <sphereGeometry args={[0.2, 24, 24]} />
-      <meshStandardMaterial color={grupo.color} emissive={grupo.color} emissiveIntensity={encima || noche ? 1 : 0.5} />
-    </mesh>
-  )
-}
-
-function Orbes({ noche }) {
+function Fuego({ posicion, noche }) {
   const ref = useRef()
+  const { scene, animations } = useGLTF(RUTA_FUEGO)
+  const copia = useMemo(() => clone(scene), [scene])
+  const { escala, ajuste } = useMemo(() => medir(copia, TAMANO_FUEGO, false), [copia])
+  const { actions, names } = useAnimations(animations, ref)
+  const [encima, setEncima] = useState(false)
 
-  useFrame((state, delta) => {
-    ref.current.rotation.y -= delta * 0.5
-    ref.current.position.y = Math.sin(state.clock.elapsedTime) * 0.15
+  useEffect(() => {
+    names.forEach((nombre) => actions[nombre].reset().play())
+  }, [actions, names])
+
+  useFrame((state) => {
+    ref.current.position.y = Math.sin(state.clock.elapsedTime * 2 + posicion[0]) * 0.15
   })
 
   return (
-    <group ref={ref}>
-      {GRUPOS.map((g, i) => (
-        <Orbe key={g.codigo} grupo={g} indice={i} noche={noche} />
-      ))}
+    <group position={posicion}>
+      <group
+        ref={ref}
+        scale={encima ? 1.6 : 1}
+        onPointerOver={() => setEncima(true)}
+        onPointerOut={() => setEncima(false)}
+      >
+        <primitive object={copia} scale={escala} position={ajuste} />
+        <mesh>
+          <sphereGeometry args={[1.1, 8, 8]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+        {noche && <pointLight color="#ff7a1a" intensity={15} distance={8} position={[0, 0.5, 0]} />}
+      </group>
     </group>
+  )
+}
+
+function Fuegos({ noche }) {
+  const radio = TAMANO_CUARTEL * 0.8
+
+  return (
+    <>
+      {Array.from({ length: CANTIDAD_FUEGOS }, (_, i) => {
+        const angulo = (i / CANTIDAD_FUEGOS) * Math.PI * 2
+        return (
+          <Fuego
+            key={i}
+            posicion={[Math.cos(angulo) * radio, 1, Math.sin(angulo) * radio]}
+            noche={noche}
+          />
+        )
+      })}
+    </>
   )
 }
 
@@ -71,17 +91,17 @@ function Mundo({ dia }) {
       <color attach="background" args={[dia ? '#bfe3ff' : '#0b1026']} />
       <ambientLight intensity={dia ? 0.9 : 0.3} />
       <directionalLight position={[4, 6, 3]} intensity={dia ? 1.6 : 0.5} color={dia ? '#ffffff' : '#9db4ff'} />
-      {!dia && <pointLight position={[0, 2, 5]} intensity={30} distance={14} color="#ffcf8a" />}
+      {!dia && <pointLight position={[0, 3, 8]} intensity={40} distance={20} color="#ffcf8a" />}
 
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[7, 48]} />
+        <circleGeometry args={[14, 64]} />
         <meshStandardMaterial color={dia ? '#7ec850' : '#1f3b2d'} />
       </mesh>
 
       <Suspense fallback={null}>
         <Cuartel />
+        <Fuegos noche={!dia} />
       </Suspense>
-      <Orbes noche={!dia} />
     </>
   )
 }
@@ -91,15 +111,17 @@ export default function EscenaLanding() {
 
   return (
     <Canvas
-      camera={{ position: [7, 4, 9], fov: 45 }}
+      camera={{ position: [11, 5.5, 14], fov: 45 }}
       style={{ height: '100%' }}
       onPointerMissed={() => setDia(!dia)}
     >
       <Mundo dia={dia} />
       <OrbitControls
+        autoRotate
+        autoRotateSpeed={0.5}
         enableZoom={false}
         enablePan={false}
-        target={[0, 1.2, 0]}
+        target={[0, 2.5, 0]}
         minPolarAngle={Math.PI / 4}
         maxPolarAngle={Math.PI / 2.1}
       />
