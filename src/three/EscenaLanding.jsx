@@ -4,9 +4,9 @@ import { OrbitControls, useAnimations, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 
-const RUTA_CUARTEL = '/models/cuartel.glb'
+const RUTA_CUARTEL = '/models/camion_bomberos.glb'
 const RUTA_FUEGO = '/models/fuego.glb'
-const TAMANO_CUARTEL = 30
+const TAMANO_CUARTEL = 15
 const TAMANO_FUEGO = 3
 const CANTIDAD_FUEGOS = 6
 
