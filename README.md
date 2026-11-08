@@ -2,7 +2,7 @@
 
 Prototipo web de un canal digital para reportar emergencias a la línea 119 de Bomberos Cali. Tiene tres pantallas: una landing, el reporte del ciudadano y el tablero del radio operador con un mapa real de Cali.
 
-**Sitio desplegado:** -----
+**Sitio desplegado:** https://parcial-119-base-five.vercel.app/
 
 ## Integrantes
 
