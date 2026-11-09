@@ -51,7 +51,7 @@ Estados de un reporte: Recibido, Validado, Unidad despachada y Cerrado (o Descar
 
 ### 5. ¿Se pueden enviar varias fotos o videos, con recomendaciones de cómo tomarlos?
 
-**Qué hicimos:** el formulario permite hasta 3 fotos con miniaturas y un botón para quitarlas, y el operador las ve en el detalle del reporte. Incluimos una nota que recuerda tomar una foto clara del lugar. No hicimos videos ni la ventana de recomendaciones.
+**Qué hicimos:** el formulario permite hasta 3 fotos con miniaturas y un botón para quitarlas, y el operador las ve en el detalle del reporte. Incluimos una nota que recuerda tomar una foto o video claro del lugar.
 
 **Qué faltaría para producción:** subir los archivos a un servidor de almacenamiento, comprimir las imágenes, aceptar videos con un límite de peso y mostrar recomendaciones claras antes de grabar (mantener distancia segura, grabar en horizontal, mostrar el entorno).
 
