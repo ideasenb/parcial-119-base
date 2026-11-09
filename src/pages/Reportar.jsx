@@ -198,7 +198,7 @@ function Formulario({ onEnviar }) {
                 <div className="foto__video-preview">
                   <video src={item.url} muted playsInline preload="metadata" />
                   <span className="foto__badge-video">
-                    <span className="material-symbols-outlined">videocam</span>
+                    <span className="material-symbols-outlined"></span>
                   </span>
                 </div>
               ) : (
