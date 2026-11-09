@@ -116,13 +116,24 @@ function Detalle({ reporte, onVolver }) {
         )}
       </dl>
 
-      {reporte.fotos.length > 0 && (
+      {reporte.fotos && reporte.fotos.length > 0 && (
         <div className="fotos-detalle">
-          {reporte.fotos.map((url) => (
-            <a key={url} href={url} target="_blank" rel="noreferrer">
-              <img src={url} alt="Foto del ciudadano" />
-            </a>
-          ))}
+          {reporte.fotos.map((item, idx) => {
+            const url = typeof item === 'string' ? item : item.url
+            const esVideo = typeof item === 'object' && item.tipo === 'video'
+            if (esVideo) {
+              return (
+                <div key={item.id || url || idx} className="foto-detalle-video">
+                  <video src={url} controls playsInline title="Video del ciudadano" />
+                </div>
+              )
+            }
+            return (
+              <a key={item.id || url || idx} href={url} target="_blank" rel="noreferrer">
+                <img src={url} alt="Foto del ciudadano" />
+              </a>
+            )
+          })}
         </div>
       )}
 
